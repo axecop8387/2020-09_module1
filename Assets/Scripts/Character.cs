@@ -2,24 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Character : MonoBehaviour
+public partial class Character : MonoBehaviour
 {
-    public enum State
-    {
-        Idle,
-        RunningToEnemy,
-        RunningFromEnemy,
-        BeginAttack,
-        Attack,
-        BeginShoot,
-        Shoot,
-    }
-
-    public enum Weapon
-    {
-        Pistol,
-        Bat,
-    }
 
     Animator animator;
     State state;
@@ -47,7 +31,18 @@ public class Character : MonoBehaviour
     [ContextMenu("Attack")]
     void AttackEnemy()
     {
-        switch (weapon) {
+        if (state == State.Dead) {
+            return;
+        }
+
+        State enemyState = target.GetComponent<Character>().state;
+        if (enemyState == State.BeginDying || enemyState == State.Dead) {
+            return;
+        }
+
+        switch (weapon)
+        {
+            case Weapon.Fist:
             case Weapon.Bat:
                 state = State.RunningToEnemy;
                 break;
@@ -60,7 +55,8 @@ public class Character : MonoBehaviour
     bool RunTowards(Vector3 targetPosition, float distanceFromTarget)
     {
         Vector3 distance = targetPosition - transform.position;
-        if (distance.magnitude < 0.00001f) {
+        if (distance.magnitude < 0.00001f)
+        {
             transform.position = targetPosition;
             return true;
         }
@@ -72,7 +68,8 @@ public class Character : MonoBehaviour
         distance = (targetPosition - transform.position);
 
         Vector3 step = direction * runSpeed;
-        if (step.magnitude < distance.magnitude) {
+        if (step.magnitude < distance.magnitude)
+        {
             transform.position += step;
             return false;
         }
@@ -83,7 +80,8 @@ public class Character : MonoBehaviour
 
     void FixedUpdate()
     {
-        switch (state) {
+        switch (state)
+        {
             case State.Idle:
                 transform.rotation = originalRotation;
                 animator.SetFloat("Speed", 0.0f);
@@ -102,8 +100,19 @@ public class Character : MonoBehaviour
                 break;
 
             case State.BeginAttack:
-                animator.SetTrigger("MeleeAttack");
+                if (weapon == Weapon.Bat) {
+                    animator.SetTrigger("MeleeAttack");
+                }
+
+                if (weapon == Weapon.Fist)
+                {
+                    animator.SetTrigger("FistAttack");
+                }
+
+                target.GetComponent<Character>().state = State.BeginDying;
+
                 state = State.Attack;
+
                 break;
 
             case State.Attack:
@@ -115,6 +124,14 @@ public class Character : MonoBehaviour
                 break;
 
             case State.Shoot:
+
+                break;
+            case State.BeginDying:
+                animator.SetTrigger("Die");
+                state = State.Dead;
+                break;
+            case State.Dead:
+
                 break;
         }
     }
